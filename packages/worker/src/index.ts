@@ -143,6 +143,35 @@ export function R2Explorer(config?: R2ExplorerConfig) {
 
 	openapi.post("/api/emails/send", SendEmail);
 
+	// ====== 新增：禁止手机浏览器通过分享链接下载文件 ======
+	app.use("/share/:shareId", async (c, next) => {
+		// 只拦截 GET 下载请求（HEAD 等其他方法放行）
+		if (c.req.method !== "GET") {
+			await next();
+			return;
+		}
+
+		const ua = (c.req.header("User-Agent") || "").toLowerCase();
+		const mobileKeywords = [
+			"mobile",
+			"android",
+			"iphone",
+			"ipad",
+			"ipod",
+			"windows phone",
+			"blackberry",
+			"opera mini",
+		];
+		const isMobile = mobileKeywords.some((kw) => ua.includes(kw));
+
+		if (isMobile) {
+			return c.text("禁止使用手机浏览器下载分享文件，请使用电脑访问。", 403);
+		}
+
+		await next();
+	});
+	// ====== 新增结束 ======
+
 	// Public share access (no authentication required)
 	openapi.get("/share/:shareId", GetShareLink);
 
